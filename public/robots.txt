@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://references-graph.contentstackapps.com
+
+# Sitemaps
+Sitemap: https://references-graph.contentstackapps.com/sitemap.xml
