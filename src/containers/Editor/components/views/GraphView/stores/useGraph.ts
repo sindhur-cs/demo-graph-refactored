@@ -189,7 +189,7 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
           throw "Content type and entry uid are required";
         }
 
-        const response = await fetch(`http://localhost:3002/api/v3/items/bfs/content_types/${decryptedResult.contentType}/entries/${decryptedResult.entryUid}`, {
+        const response = await fetch(`https://refactored-backend-api.onrender.com/api/v3/items/bfs/content_types/${decryptedResult.contentType}/entries/${decryptedResult.entryUid}`, {
           method: "GET",
           headers: {
             api_key: decryptedResult.stackAPI || ""
