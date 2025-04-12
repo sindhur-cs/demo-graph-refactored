@@ -32,7 +32,8 @@ interface Item {
   "references": any[],
   "variant_name": string,
   "variant_uid": string,
-  "fallback_variant": string | null
+  "fallback_variant": string | null,
+  "workflow_stage"?: string | null
 }
 
 function calculateNodeSize(item: any, isParent = false) {
@@ -159,10 +160,6 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
   resetFreqMap: () => set({ freqMap: new Map() }),
   setGraph: async (data, options) => {
     const localeMap = new Map();
-    const nodesToRemove = new Set();
-    let noVariants = true;
-    let defaultParentTitle = "";
-    const testing = false;
 
     const encryptedData = new URL(window.location.href).searchParams.get("data");
 
@@ -189,7 +186,7 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
           throw "Content type and entry uid are required";
         }
 
-        const response = await fetch(`https://refactored-backend-api.onrender.com/api/v3/items/bfs/content_types/${decryptedResult.contentType}/entries/${decryptedResult.entryUid}`, {
+        const response = await fetch(`http://localhost:3002/api/v3/items/bfs/content_types/${decryptedResult.contentType}/entries/${decryptedResult.entryUid}`, {
           method: "GET",
           headers: {
             api_key: decryptedResult.stackAPI || ""
@@ -456,7 +453,7 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
                           id: uuidv4(),
                           text: [
                             ["Master Locale"],
-                            [item.title || get().nodes.find(node => node.id === get().nodeMapping.get(`${item.uid}.base_variant`))?.text?.[1][0]],
+                            [item.title || get().nodes.find(node => node.id === get().nodeMapping.get(`${item.uid}.base_variant.${item.locale}`))?.text?.[0][0]],
                             ["locale", item.locale],
                             ["content_type_uid", item.content_type_uid]
                           ],
@@ -499,6 +496,12 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
                 item.references.forEach((ref) => {
                   set({ parentMapping: new Map([...get().parentMapping, [refUid, new Set([...(get().parentMapping.get(refUid) || []), ref.uid])]]) });
                 });
+
+                set({ contentTypeCollection: new Set([...get().contentTypeCollection, item.content_type_uid]) });
+                set({ localeCollection: new Set([...get().localeCollection, item.locale]) });
+                if (item.workflow_stage) {
+                  set({ workflowCollection: new Set([...get().workflowCollection, item.workflow_stage]) });
+                }
               });
 
               // connect item uid base to respective localised entries (to avoid invalid graph structure)
