@@ -229,15 +229,17 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
                 if (item.variant_uid === "base_variant") {
 
                   // add color to node based on content type
-                  if (!get().colorMap.get(item.content_type_uid)) {
-                    const bgColor = generateRandomColor();
-                    set({ colorMap: new Map([...get().colorMap, [item.content_type_uid, [bgColor, getContrastColor(bgColor)]]]) });
-                  }
-
+                  // if (!get().colorMap.get(`${item.uid}.${item.variant_uid}`)) {
+                    // const bgColor = generateRandomColor();
+                    // set({ colorMap: new Map([...get().colorMap, [item.content_type_uid, [bgColor, getContrastColor(bgColor)]]]) });
+                  // }
+                    
                   const { width, height } = calculateNodeSize(item);
-
+                    
                   // when master locale or parent entry is encountered
                   if (item.fallback_locale === null) {
+                    set({ colorMap: new Map([...get().colorMap, [`${item.uid}.${item.variant_uid}`, ["#7C4DFF", getContrastColor("#7C4DFF")]]]) });
+
                     const node = {
                       id: uuidv4(),
                       text: [
@@ -249,7 +251,7 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
                       width,
                       height,
                       isError: Math.random() > 0.5,
-                      color: [get().colorMap.get(item.content_type_uid)?.[0], get().colorMap.get(item.content_type_uid)?.[1]],
+                      color: [get().colorMap.get(`${item.uid}.${item.variant_uid}`)?.[0], get().colorMap.get(`${item.uid}.${item.variant_uid}`)?.[1]],
                       data: {
                         type: "object",
                         isParent: false,
@@ -263,7 +265,9 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
                   }
                   else {
                     refUid += `.${item.locale}`;
+                    
                     // when other locales are encountered
+                    set({ colorMap: new Map([...get().colorMap, [`${item.uid}.${item.variant_uid}.${item.locale}`, ["#1783FF", getContrastColor("#1783FF")]]]) });
 
                     // create localised node
                     const node = {
@@ -276,7 +280,7 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
                       width,
                       height,
                       isError: Math.random() > 0.5,
-                      color: [get().colorMap.get(item.content_type_uid)?.[0], get().colorMap.get(item.content_type_uid)?.[1]],
+                      color: [get().colorMap.get(`${item.uid}.${item.variant_uid}.${item.locale}`)?.[0], get().colorMap.get(`${item.uid}.${item.variant_uid}.${item.locale}`)?.[1]],
                       data: {
                         type: "object",
                         isParent: false,
@@ -370,6 +374,8 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
 
                     // create variant name node specific to item uid if not done
                     if (!get().nodeMapping.get(`${item.variant_uid}.${item.uid}`)) {
+                      set({ colorMap: new Map([...get().colorMap, [`${item.uid}.${item.variant_uid}`, ["#EC3DC8", getContrastColor("#EC3DC8")]]]) });
+
                       const eachVariantNode = {
                         id: uuidv4(),
                         text: [
@@ -378,7 +384,7 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
                         width: 0,
                         height: 0,
                         isError: Math.random() > 0.5,
-                        color: [get().colorMap.get(`variant_node`)?.[0], get().colorMap.get(`variant_node`)?.[1]],
+                        color: [get().colorMap.get(`${item.uid}.${item.variant_uid}`)?.[0], get().colorMap.get(`${item.uid}.${item.variant_uid}`)?.[1]],
                         data: {
                           type: "text",
                           isParent: false,
@@ -403,6 +409,7 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
 
                       set({ edges: [...get().edges, variantNameEdge] });
                     }
+                    
                     // create item.uid specfic variant node and connect it to respective variant name node if not done
                     if (item.fallback_locale === null) {
                       if (!get().nodeMapping.get(`${item.uid}.${item.variant_uid}`)) {
@@ -417,7 +424,7 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
                           width: 0,
                           height: 0,
                           isError: Math.random() > 0.5,
-                          color: [get().colorMap.get(item.content_type_uid)?.[0], get().colorMap.get(item.content_type_uid)?.[1]],
+                          color: [get().colorMap.get(`${item.uid}.${item.variant_uid}`)?.[0], get().colorMap.get(`${item.uid}.${item.variant_uid}`)?.[1]],
                           data: {
                             type: "object",
                             isParent: false,
@@ -449,6 +456,8 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
 
                       // create variant node locale specific if not done
                       if (!get().nodeMapping.get(`${item.uid}.${item.variant_uid}.${item.locale}`)) {
+                        set({ colorMap: new Map([...get().colorMap, [`${item.uid}.${item.variant_uid}.${item.locale}`, ["#EC3DC8", getContrastColor("#EC3DC8")]]]) });
+
                         const variantLocalisedNode = {
                           id: uuidv4(),
                           text: [
@@ -459,7 +468,7 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
                           width: 0,
                           height: 0,
                           isError: Math.random() > 0.5,
-                          color: [get().colorMap.get(item.content_type_uid)?.[0], get().colorMap.get(item.content_type_uid)?.[1]],
+                          color: [get().colorMap.get(`${item.uid}.${item.variant_uid}.${item.locale}`)?.[0], get().colorMap.get(`${item.uid}.${item.variant_uid}.${item.locale}`)?.[1]],
                           data: {
                             type: "object",
                             isParent: false,
