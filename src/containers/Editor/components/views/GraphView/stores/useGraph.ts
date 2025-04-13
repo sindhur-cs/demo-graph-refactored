@@ -369,7 +369,7 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
                     }
 
                     // create variant name node specific to item uid if not done
-                    if (!get().nodeMapping.get(`${item.variant_name}.${item.uid}`)) {
+                    if (!get().nodeMapping.get(`${item.variant_uid}.${item.uid}`)) {
                       const eachVariantNode = {
                         id: uuidv4(),
                         text: [
@@ -392,7 +392,7 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
                       eachVariantNode.width = eachVariantWidth;
                       eachVariantNode.height = eachVariantHeight;
 
-                      set({ nodeMapping: new Map([...get().nodeMapping, [`${item.variant_name}.${item.uid}`, eachVariantNode.id]]) });
+                      set({ nodeMapping: new Map([...get().nodeMapping, [`${item.variant_uid}.${item.uid}`, eachVariantNode.id]]) });
                       set({ nodes: [...get().nodes, eachVariantNode] });
 
                       const variantNameEdge = {
@@ -409,7 +409,7 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
                         const variantNode = {
                           id: uuidv4(),
                           text: [
-                            [item.uid === decryptedResult.entryUid ? "Parent Entry" : "Master Locale"],
+                            ["Master Locale"],
                             [item.title || get().nodes.find(node => node.id === get().nodeMapping.get(`${item.uid}.base_variant`))?.text?.[1][0]],
                             ["locale", item.locale],
                             ["content_type_uid", item.content_type_uid]
@@ -436,8 +436,8 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
 
                         // connect master locale variant to variant name
                         const variantNodeNameEdge = {
-                          id: `e${get().nodeMapping.get(`${item.variant_name}.${item.uid}`)}-${variantNode.id}`,
-                          from: get().nodeMapping.get(`${item.variant_name}.${item.uid}`) || "",
+                          id: `e${get().nodeMapping.get(`${item.variant_uid}.${item.uid}`)}-${variantNode.id}`,
+                          from: get().nodeMapping.get(`${item.variant_uid}.${item.uid}`) || "",
                           to: variantNode.id
                         }
 
@@ -452,7 +452,6 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
                         const variantLocalisedNode = {
                           id: uuidv4(),
                           text: [
-                            ["Master Locale"],
                             [item.title || get().nodes.find(node => node.id === get().nodeMapping.get(`${item.uid}.base_variant.${item.locale}`))?.text?.[0][0]],
                             ["locale", item.locale],
                             ["content_type_uid", item.content_type_uid]
@@ -477,14 +476,52 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
                         set({ nodeMapping: new Map([...get().nodeMapping, [`${item.uid}.${item.variant_uid}.${item.locale}`, variantLocalisedNode.id]]) });
                         set({ nodes: [...get().nodes, variantLocalisedNode] });
 
-                        // connect master locale variant to variant name
-                        const variantNodeNameEdge = {
-                          id: `e${get().nodeMapping.get(`${item.variant_name}.${item.uid}`)}-${variantLocalisedNode.id}`,
-                          from: get().nodeMapping.get(`${item.variant_name}.${item.uid}`) || "",
+                        // create a localised variants block if not done
+                        if (!get().nodeMapping.get(`localisedvariants-${item.uid}.${item.variant_uid}`)) {
+                          const localisedVariantsNode = {
+                            id: uuidv4(),
+                            text: "localised_variants",
+                            width: 0,
+                            height: 0,
+                            isError: Math.random() > 0.5,
+                            color: ["white", "black"],
+                            data: {
+                              type: "array",
+                              isParent: true,
+                              isEmpty: false,
+                              childrenCount: items.length,
+                            },
+                          }
+
+                          const { width: refWidth, height: refHeight } = calculateNodeSize(localisedVariantsNode, true);
+
+                          localisedVariantsNode.width = refWidth;
+                          localisedVariantsNode.height = refHeight;
+
+                          set({ nodeMapping: new Map([...get().nodeMapping, [`localisedvariants-${item.uid}.${item.variant_uid}`, localisedVariantsNode.id]]) });
+                          set({ nodes: [...get().nodes, localisedVariantsNode] });
+                        }
+
+                        // connect localised entries block to locale nodes
+                        const localisedVariantsNodeEdge = {
+                          id: `e${get().nodeMapping.get(`localisedvariants-${item.uid}.${item.variant_uid}`)}-${variantLocalisedNode.id}`,
+                          from: get().nodeMapping.get(`localisedvariants-${item.uid}.${item.variant_uid}`) || "",
                           to: variantLocalisedNode.id
                         }
 
-                        set({ edges: [...get().edges, variantNodeNameEdge] });
+                        set({ edges: [...get().edges, localisedVariantsNodeEdge] });
+
+                        // since the locale do not come in a sorted manner in the apis need to track a localeMap for connecting localised entries block and locale node
+                        localeMap.set(get().nodeMapping.get(`localisedvariants-${item.uid}.${item.variant_uid}`), `${item.uid}.${item.variant_uid}`);
+
+                        // connect master locale variant to variant name
+                        // const variantNodeNameEdge = {
+                        //   id: `e${get().nodeMapping.get(`${item.variant_uid}.${item.uid}`)}-${variantLocalisedNode.id}`,
+                        //   from: get().nodeMapping.get(`${item.variant_uid}.${item.uid}`) || "",
+                        //   to: variantLocalisedNode.id
+                        // }
+
+                        // set({ edges: [...get().edges, variantNodeNameEdge] });
 
                         console.log(item.uid);
                       }
@@ -507,7 +544,12 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
               // connect item uid base to respective localised entries (to avoid invalid graph structure)
               Array.from(localeMap).forEach((value) => {
                 const childId = value[0];
-                const parentId = value[1];
+                let parentId = value[1];
+
+                if(!get().nodeMapping.get(parentId)) {
+                  // special case where there is no variant changes for master locale but has changes for locales in the variants
+                  parentId = `${parentId.split(".")[1]}.${parentId.split(".")[0]}`;
+                }
 
                 const localisedEdge = {
                   id: `e${get().nodeMapping.get(parentId)}-${childId}`,
